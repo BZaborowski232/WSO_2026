@@ -13,13 +13,21 @@ Jeśli Maven nie widzi biblioteki, zainstaluj ją lokalnie komendą:
 mvn install:install-file -Dfile=lib/cloudsim-3.0.3.jar -DgroupId=org.cloudbus.cloudsim -DartifactId=cloudsim -Dversion=3.0.3 -Dpackaging=jar -DgeneratePom=true
 ```
 
-## Potencjalny Plan Eksperymentów propozycja
+## Potencjalny Plan Eksperymentów propozycja i TODO
 Celem jest przeprowadzenie serii testów dla wszystkich kombinacji algorytmów, wariantów infrastruktury i obciążeń:
 
 1. Eksperyment 1 (Porównanie podstawowe): Uruchomienie wszystkich algorytmów dla 500 zadań (Wariant A).
 2. Eksperyment 2 (Skalowalność): Porównanie wydajności przy 100, 500 oraz 1000 zadań.
 3. Eksperyment 3 (Skalowanie infrastruktury): Porównanie Wariantu A (5 hostów) vs Wariant B (10 hostów).
 4. Eksperyment 4 (Test EAMM): Analiza efektywności energetycznej autorskiego algorytmu EAMM w porównaniu do Min-Min.
+
+(To-Do):
+* Wprowadzenie heterogeniczności: - Wstepne wyniki (zrobilem tylko wariant A i B na 500 taskach dla wszystkich zeby sprawdzic czy w ogole dzialaj) są bardzo zbliżone (srednia czasu wykonania wychodzi ~60 wszedzie). Trzeba zobaczyc czy zadania generuja sie z rozna dlugoscia i ewentualnie zeby moze maszyny VM mialy losowa moc obliczeniowa
+
+itp. trzeba sie tym jakos pobawic i zrobic eksperymenty z ktorych jakies wnioski bedzie mozna spisac. Nizej wrzucam fote wstepnej wizualizacji co sie udalo zrobic:
+
+![Podgląd dashboardu](images/Wstepna_wizu_wynikow.png)
+
 
 ## Jak uruchomić symulację?
 Trzeba zapuscic komende dla wybranego eksperymentu, wariantu infrastruktury i liczby taskow według schemtu: (pamietaj o spacji miedzy litera wariantu a liczba taskow)
@@ -45,6 +53,6 @@ mvn clean compile exec:java -Dexec.mainClass="pl.edu.pw.wso.experiments.[NazwaEk
 itp itd 
 
 ## Wyniki
-Wyniki (pliki .csv) są zapisywane automatycznie w folderze `DATA/` (np. `wyniki_EAMM_A_500.csv`). Na koniec pewnie trzeba bedzie zrobic jakas ladna analize pewnie w pythonie itp, mozna tez zrobic ladny dashboard zeby sie w www wyswietlal z biblio:
+Wyniki (pliki .csv) są zapisywane automatycznie w folderze `DATA/` (np. `wyniki_EAMM_A_500.csv`). Zrobilem basic analize w streamlit:
 
-`import streamlit as st`
+Uruchomienie (jak nie masz venv to bez uv): uv run streamlit run app.py
