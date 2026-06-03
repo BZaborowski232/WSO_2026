@@ -1,0 +1,30 @@
+# --- Systemowe (macOS) ---
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.uv/
+.pytest_cache/
+
+# --- Java & Maven ---
+**/target/
+*.jar
+!lib/cloudsim-3.0.3.jar*.war
+*.ear
+*.lst
+
+# --- Środowisko / IDE (VS Code, IntelliJ) ---
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+
+# Wyniki eksperymentow - kazdy wygeneruje sobie u siebie
+DATA/
