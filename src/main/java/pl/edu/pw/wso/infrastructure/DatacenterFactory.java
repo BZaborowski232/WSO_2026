@@ -60,17 +60,24 @@ public class DatacenterFactory {
 
     public static List<Vm> createVms(int brokerId, int vmCount) {
         List<Vm> vmList = new ArrayList<>();
-        // Parametry VM do kalibracji w miarę postępu prac nad zadaniami wideo
-        int mips = 1000;
+        
+        // Pule różnych mocy obliczeniowych (np. słabe, średnie, mocne i bardzo mocne maszyny)
+        int[] mipsOptions = {500, 1000, 1500, 2500};
+        
         long size = 10000; // 10 GB
         int ram = 2048; // 2 GB
         long bw = 1000;
-        int pesNumber = 4; // 4 vCPU na maszynę wirtualną
+        int pesNumber = 4; // 4 vCPU
         String vmm = "Xen";
 
-        // Tworzenie zdefiniowanej liczby maszyn wirtualnych
+        // Używamy stałego seeda, aby eksperymenty były powtarzalne dla każdego algorytmu
+        java.util.Random rand = new java.util.Random(123);
+
         for (int i = 0; i < vmCount; i++) {
-            vmList.add(new Vm(i, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerSpaceShared()));
+            // Losujemy moc maszyny z dostępnej puli
+            int mips = mipsOptions[rand.nextInt(mipsOptions.length)];
+            
+            vmList.add(new Vm(i, brokerId, mips, pesNumber, ram, bw, size, vmm, new org.cloudbus.cloudsim.CloudletSchedulerSpaceShared()));
         }
         return vmList;
     }

@@ -55,4 +55,8 @@ itp itd
 ## Wyniki
 Wyniki (pliki .csv) są zapisywane automatycznie w folderze `DATA/` (np. `wyniki_EAMM_A_500.csv`). Zrobilem basic analize w streamlit:
 
-Uruchomienie (jak nie masz venv to bez uv): uv run streamlit run app.py
+Uruchomienie (jak nie masz venv to bez uv): 
+
+```bash
+uv run streamlit run app.py
+```
