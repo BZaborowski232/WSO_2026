@@ -52,7 +52,9 @@ fig1 = px.bar(
     barmode='group',          
     facet_col='Wariant',      
     title="Makespan: Algorytmy vs Warianty",
-    labels={'Makespan': 'Czas [s]'}
+    labels={'Makespan': 'Czas [s]'},
+    text_auto='.2f'
+    
 )
 st.plotly_chart(fig1, use_container_width=True)
 
@@ -70,7 +72,9 @@ if not df_energy.empty:
         facet_col='Wariant',      
         title="Całkowite zużycie energii centrum danych",
         labels={'Energia_kWh': 'Energia [kWh]'},
-        color_discrete_sequence=px.colors.qualitative.Pastel # Inny zestaw kolorów dla energii
+        color_discrete_sequence=px.colors.qualitative.Pastel, # Inny zestaw kolorów dla energii
+        text_auto='.2f'
+        
     )
     st.plotly_chart(fig2, use_container_width=True)
 
