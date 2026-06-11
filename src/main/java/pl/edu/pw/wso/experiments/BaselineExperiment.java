@@ -2,6 +2,7 @@ package pl.edu.pw.wso.experiments;
 
 import org.cloudbus.cloudsim.*;
 import org.cloudbus.cloudsim.core.CloudSim;
+import org.cloudbus.cloudsim.power.PowerDatacenterNonPowerAware;
 import org.cloudbus.cloudsim.power.PowerHost;
 import pl.edu.pw.wso.infrastructure.DatacenterFactory;
 import pl.edu.pw.wso.infrastructure.TaskFactory;
@@ -25,7 +26,7 @@ public class BaselineExperiment {
             List<PowerHost> hostList = variant.equals("B") ? DatacenterFactory.createWariantB() : DatacenterFactory.createWariantA();
             int vmCount = variant.equals("B") ? 40 : 20;
 
-            Datacenter datacenter = createDatacenter("Datacenter_" + variant, hostList);
+            PowerDatacenterNonPowerAware datacenter = createDatacenter("Datacenter_" + variant, hostList);
             DatacenterBroker broker = new DatacenterBroker("Broker_FCFS");
             
             List<Vm> vmlist = DatacenterFactory.createVms(broker.getId(), vmCount);
@@ -33,8 +34,15 @@ public class BaselineExperiment {
             List<Cloudlet> cloudletList = TaskFactory.createVideoTasks(broker.getId(), taskCount);
             broker.submitCloudletList(cloudletList);
 
+            // FCFS - polega na domyślnym działaniu brokera CloudSim
+
             CloudSim.startSimulation();
             CloudSim.stopSimulation();
+
+            // Obliczanie i eksport energii
+            double energyKWh = datacenter.getPower() / (3600.0 * 1000.0);
+            System.out.println("Całkowite zużycie energii: " + energyKWh + " kWh");
+            CsvExporter.exportEnergyToCsv("FCFS", variant, taskCount, energyKWh, "DATA/energia_FCFS_" + variant + "_" + taskCount + ".csv");
 
             List<Cloudlet> newList = broker.getCloudletReceivedList();
             printCloudletList(newList);
@@ -43,46 +51,23 @@ public class BaselineExperiment {
         } catch (Exception e) { e.printStackTrace(); }
     }
 
-    private static Datacenter createDatacenter(String name, List<PowerHost> hostList) throws Exception {
-        String arch = "x86";
-        String os = "Linux";
-        String vmm = "Xen";
-        double time_zone = 10.0;
-        double cost = 3.0;
-        double costPerMem = 0.05;
-        double costPerStorage = 0.001;
-        double costPerBw = 0.0;
-
+    private static PowerDatacenterNonPowerAware createDatacenter(String name, List<PowerHost> hostList) throws Exception {
         DatacenterCharacteristics characteristics = new DatacenterCharacteristics(
-                arch, os, vmm, hostList, time_zone, cost, costPerMem, costPerStorage, costPerBw);
-
-        // Wykorzystujemy VmAllocationPolicySimple - prostą politykę alokacji VM do Hostów
-        return new Datacenter(name, characteristics, new VmAllocationPolicySimple(hostList), new LinkedList<Storage>(), 1.0);
-    }
-
-    private static DatacenterBroker createBroker(String name) throws Exception {
-        return new DatacenterBroker(name);
+                "x86", "Linux", "Xen", hostList, 10.0, 3.0, 0.05, 0.001, 0.0);
+        return new PowerDatacenterNonPowerAware(name, characteristics, new VmAllocationPolicySimple(hostList), new LinkedList<Storage>(), 1.0);
     }
 
     private static void printCloudletList(List<Cloudlet> list) {
-        int size = list.size();
-        Cloudlet cloudlet;
-        String indent = "    ";
-        System.out.println();
-        System.out.println("========== WYNIKI SYMULACJI ==========");
-        System.out.println("Task ID" + indent + "STATUS" + indent + "Datacenter ID" + indent + "VM ID" + indent + "Czas (Makespan)" + indent + "Start" + indent + "Koniec");
-
+        System.out.println("\n========== WYNIKI SYMULACJI ==========");
+        System.out.println("Task ID    STATUS    Datacenter ID    VM ID    Czas (Makespan)    Start    Koniec");
         DecimalFormat dft = new DecimalFormat("###.##");
-        for (int i = 0; i < size; i++) {
-            cloudlet = list.get(i);
-            System.out.print(indent + cloudlet.getCloudletId() + indent + indent);
-
+        for (Cloudlet cloudlet : list) {
             if (cloudlet.getCloudletStatus() == Cloudlet.SUCCESS) {
-                System.out.print("SUCCESS");
-                System.out.println(indent + indent + cloudlet.getResourceId() + indent + indent + indent + cloudlet.getVmId()
-                        + indent + indent + dft.format(cloudlet.getActualCPUTime())
-                        + indent + indent + indent + dft.format(cloudlet.getExecStartTime())
-                        + indent + indent + dft.format(cloudlet.getFinishTime()));
+                System.out.println("    " + cloudlet.getCloudletId() + "        SUCCESS        " 
+                        + cloudlet.getResourceId() + "            " + cloudlet.getVmId()
+                        + "        " + dft.format(cloudlet.getActualCPUTime())
+                        + "            " + dft.format(cloudlet.getExecStartTime())
+                        + "        " + dft.format(cloudlet.getFinishTime()));
             }
         }
     }

@@ -126,7 +126,7 @@ Na podstawie zagregowanych danych symulacyjnych (parametr Makespan dla każdej z
 #### 2.6 Modelowanie i analiza efektywności energetycznej
 
 ##### 2.6.1 Teoretyczne podstawy modelu energetycznego w CloudSim
-W celu realizacji założeń paradygmatu *Green Computing* (zielonego przetwarzania), infrastruktura symulacyjna zdefiniowana w pliku `DatacenterFactory.java` wykorzystuje komponenty klasy `PowerHost`. Pobór mocy maszyn fizycznych podczas wykonywania zadań obliczeniowych jest kalkulowany przez silnik CloudSim w oparciu o liniowy model energetyczny (`PowerModelLinear`). Model ten definiuje zużycie energii jako funkcję aktualnego stopnia utylizacji procesora (CPU utilization):
+W celu realizacji założeń Green Computing, infrastruktura symulacyjna zdefiniowana w fabryce centrów danych wykorzystuje komponenty klasy `PowerHost`. Pobór mocy maszyn fizycznych podczas wykonywania zadań obliczeniowych jest kalkulowany przez silnik CloudSim w oparciu o liniowy model energetyczny (`PowerModelLinear`). Model ten definiuje zużycie energii jako funkcję aktualnego stopnia utylizacji procesora:
 
 $$P(u) = P_{\text{static}} + (P_{\text{max}} - P_{\text{static}}) \times u$$
 
@@ -139,23 +139,25 @@ Gdzie:
 ##### 2.6.2 Mechanizm optymalizacji energetycznej w algorytmie EAMM
 W klasycznych heurystykach szeregowania (Min-Min, Max-Min) alokacja koncentruje się bezwzględnie na minimalizacji czasu Makespan. Prowadzi to do zjawiska, w którym najwydajniejsze maszyny wirtualne są nieustannie eksploatowane w 100%, podczas gdy pozostałe hosty fizyczne pozostają włączone i zużywają energię w stanie spoczynku ($P_{\text{static}}$), nie wykonując żadnej produktywnej pracy. 
 
-Zaimplementowany algorytm EAMM (Energy-Aware Min-Min) przeciwdziała temu zjawisku na poziomie samej funkcji kosztu alokacji, wprowadzając komponent kary za skumulowane obciążenie kolejki zadań danej maszyny wirtualnej (`loadPenalty`):
+Zaimplementowany algorytm EAMM (Energy-Aware Min-Min) przeciwdziała temu zjawisku na poziomie samej funkcji kosztu alokacji. Klasyczny czas ukończenia zadania został rozszerzony o komponent kary za skumulowane obciążenie maszyny wirtualnej. Koszt ten jest obliczany jako iloczyn liczby przypisanych już do maszyny zadań oraz czasu wykonania nowego zadania, a następnie dodawany z odpowiednią wagą do estymowanego czasu ukończenia.
 
-```java
-double loadPenalty = vmTaskCount[i] * executionTime;
-double cost = (weightTime * completionTime) + (weightLoad * loadPenalty);
-```
+Wprowadzenie tego mechanizmu realizuje teoretyczne założenia optymalizacji na dwa sposoby:
 
-Wprowadzenie tego parametru realizuje teoretyczne założenia optymalizacji energetycznej na dwóch kluczowych poziomach:
-* Dywersyfikacja profilu termicznego (Load Balancing): Zapobiega powstawaniu tzw. hot-spots (punktów krytycznego przegrzania pojedynczych serwerów w szafie rack). Praca jest rozkładana na większą liczbę maszyn wirtualnych, co pozwala serwerom fizycznym pracować w optymalnych zakresach sprawności energetycznej. W rzeczywistych centrach danych przekłada się to bezpośrednio na drastyczne obniżenie kosztów energii zużywanej przez systemy klimatyzacji i chłodzenia.
-* Redukcja strat dynamicznych: Poprzez kontrolowane dopuszczanie do obliczeń maszyn o niższym taktowaniu MIPS w sytuacji, gdy maszyny najszybsze są już obciążone, EAMM wypłaszcza profil poboru mocy dynamicznej całego centrum danych, unikając gwałtownych skoków obciążenia sieci zasilającej.
+* **Dywersyfikacja profilu termicznego (Load Balancing):** Zapobiega powstawaniu tzw. hot-spots (punktów krytycznego przegrzania pojedynczych serwerów w szafie rack). Praca jest rozkładana na większą liczbę maszyn wirtualnych, co pozwala serwerom fizycznym pracować w optymalnych zakresach sprawności energetycznej. W rzeczywistych centrach danych przekłada się to bezpośrednio na drastyczne obniżenie kosztów energii zużywanej przez systemy klimatyzacji i chłodzenia.
+* **Redukcja strat dynamicznych:** Poprzez kontrolowane dopuszczanie do obliczeń maszyn o niższym taktowaniu MIPS w sytuacji, gdy maszyny najszybsze są już obciążone, EAMM wypłaszcza profil poboru mocy dynamicznej całego centrum danych, unikając gwałtownych skoków obciążenia sieci zasilającej.
 
-#### 2.6.3 Architektura integracji pomiaru i perspektywy rozwoju klastra
-Na obecnym etapie prac badawczych parametr efektywności energetycznej został w pełni zintegrowany z logiką decyzyjną brokera chmurowego (algorytm dynamicznie szacuje i ogranicza obciążenie maszyn). Aby dokonać pełnej, empirycznej weryfikacji zysków energetycznych wyrażonych bezpośrednio w kilowatogodzinach (kWh) lub dżulach (J), naturalnym kolejnym krokiem rozwoju platformy testowej jest rozbudowa modułu raportowania.
-Wymaga to modyfikacji wywołania w głównych klasach eksperymentów i pełnego przejścia z podstawowej klasy symulacyjnej Datacenter na dedykowaną klasę PowerDatacenter. Pozwoli to na cykliczne odpytywanie silnika CloudSim o sumaryczną energię zużytą przez wszystkie komponenty sprzętowe od początku trwania symulacji przy użyciu metody:
+##### 2.6.3 Integracja pomiaru energii w środowisku symulacyjnym
+Aby empirycznie zweryfikować zyski energetyczne wynikające z zastosowania powyższych algorytmów, środowisko symulacyjne zostało rozbudowane o moduł precyzyjnego raportowania zużycia energii. Dokonano modyfikacji wywołań w głównych klasach eksperymentów, zastępując podstawową klasę symulacyjną dedykowaną implementacją klasy z rodziny `PowerDatacenter`. 
 
-```python
-double totalEnergyConsumed = ((PowerDatacenter) datacenter).getConsumedEnergy();
-```
+Rozwiązanie to pozwoliło na cykliczne odpytywanie silnika CloudSim o sumaryczną energię zużytą przez wszystkie komponenty sprzętowe od początku trwania symulacji. Wyniki zwracane przez środowisko w watosekundach (Dżulach) są bezpośrednio po zakończeniu obliczeń konwertowane na kilowatogodziny (kWh). Zagregowane dane z tej konwersji zostały zintegrowane z modułem eksportu plików CSV, a następnie zaimplementowane do analitycznego dashboardu w celu czytelnej wizualizacji zjawiska energochłonności poszczególnych architektur.
 
-Wprowadzenie tej zmiennej do modułu CsvExporter oraz zaktualizowanie skryptu analitycznego app.py umożliwi wdrożenie do dashboardu dodatkowego wykresu porównawczego. Wykres ten w sposób jednoznaczny zobrazuje zysk energetyczny jako bezpośredni i mierzalny trade-off (kompromis) dla nieznacznie wydłużonego całkowitego czasu Makespan, w pełni udowadniając zasadność stosowania algorytmu EAMM w strukturach nowoczesnych centrów danych.
+##### 2.6.4 Empiryczna analiza efektywności energetycznej
+Poniższa wizualizacja prezentuje zestawienie całkowitego zużycia energii wirtualnego centrum danych dla poszczególnych algorytmów, przy rosnącym obciążeniu zadaniami.
+
+![Podgląd dashboardu](images/Dodanie_Energii.png)
+
+Zgromadzone i zwizualizowane dane udowadniają fundamentalne różnice w profilach energetycznych testowanych podejść:
+* **Nieefektywność przydziału naiwnego (FCFS, Round Robin):** Oba te algorytmy generują drastycznie wyższe zużycie energii (nawet ponad dwukrotnie wyższe przy 1000 zadaniach względem heurystyk). Wynika to z faktu, że nieefektywny przydział wydłuża sumaryczny czas działania całego centrum danych (Makespan). W rezultacie, fizyczne serwery muszą być włączone znacznie dłużej, co powoduje ogromne straty związane z ciągłym poborem mocy w stanie jałowym ($P_{\text{static}}$).
+* **Wysoka efektywność EAMM oraz heurystyk klasycznych:** Algorytm EAMM, podobnie jak Min-Min, doprowadza do radykalnej redukcji całkowitego poboru prądu. Mimo że w modelu liniowym symulatora CloudSim zużycie energii jest silnie skorelowane z Makespanem (stąd minimalnie mniejsze zużycie Min-Min), EAMM osiąga niemal równie niski pułap energetyczny. Co kluczowe, w przeciwieństwie do "zachłannego" Min-Min, EAMM osiąga te wyniki przy jednoczesnym zachowaniu zrównoważonego obciążenia węzłów, redukując ryzyko przegrzewania infrastruktury sprzętowej. 
+
+Stanowi to twardy, empiryczny dowód na to, że algorytmy świadome obciążenia (takie jak zaimplementowany EAMM) są w stanie drastycznie zoptymalizować koszty utrzymania centrów obliczeniowych, zachowując zgodność z postulatami *Green Computing*.

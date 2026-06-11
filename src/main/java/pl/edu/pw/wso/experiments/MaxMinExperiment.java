@@ -2,6 +2,7 @@ package pl.edu.pw.wso.experiments;
 
 import org.cloudbus.cloudsim.*;
 import org.cloudbus.cloudsim.core.CloudSim;
+import org.cloudbus.cloudsim.power.PowerDatacenterNonPowerAware;
 import org.cloudbus.cloudsim.power.PowerHost;
 import pl.edu.pw.wso.algorithms.MaxMinAllocator;
 import pl.edu.pw.wso.infrastructure.DatacenterFactory;
@@ -15,7 +16,7 @@ import java.util.List;
 
 public class MaxMinExperiment {
 
-        public static void main(String[] args) {
+    public static void main(String[] args) {
         String variant = (args.length > 0) ? args[0] : "A";
         int taskCount = (args.length > 1) ? Integer.parseInt(args[1]) : 500;
 
@@ -26,7 +27,7 @@ public class MaxMinExperiment {
             List<PowerHost> hostList = variant.equals("B") ? DatacenterFactory.createWariantB() : DatacenterFactory.createWariantA();
             int vmCount = variant.equals("B") ? 40 : 20;
 
-            Datacenter datacenter = createDatacenter("Datacenter_" + variant, hostList);
+            PowerDatacenterNonPowerAware datacenter = createDatacenter("Datacenter_" + variant, hostList);
             DatacenterBroker broker = new DatacenterBroker("Broker_MaxMin");
             
             List<Vm> vmlist = DatacenterFactory.createVms(broker.getId(), vmCount);
@@ -40,6 +41,11 @@ public class MaxMinExperiment {
             CloudSim.startSimulation();
             CloudSim.stopSimulation();
 
+            // Obliczanie i eksport energii
+            double energyKWh = datacenter.getPower() / (3600.0 * 1000.0);
+            System.out.println("Całkowite zużycie energii: " + energyKWh + " kWh");
+            CsvExporter.exportEnergyToCsv("MaxMin", variant, taskCount, energyKWh, "DATA/energia_MaxMin_" + variant + "_" + taskCount + ".csv");
+
             List<Cloudlet> newList = broker.getCloudletReceivedList();
             printCloudletList(newList);
             CsvExporter.exportCloudletsToCsv(newList, "DATA/wyniki_MaxMin_" + variant + "_" + taskCount + ".csv");
@@ -47,11 +53,10 @@ public class MaxMinExperiment {
         } catch (Exception e) { e.printStackTrace(); }
     }
 
-    private static Datacenter createDatacenter(String name, List<PowerHost> hostList) throws Exception {
+    private static PowerDatacenterNonPowerAware createDatacenter(String name, List<PowerHost> hostList) throws Exception {
         DatacenterCharacteristics characteristics = new DatacenterCharacteristics(
                 "x86", "Linux", "Xen", hostList, 10.0, 3.0, 0.05, 0.001, 0.0);
-        // Interwał odświeżania ustawiony na 1.0, aby uniknąć zawieszenia symulacji
-        return new Datacenter(name, characteristics, new VmAllocationPolicySimple(hostList), new LinkedList<Storage>(), 1.0);
+        return new PowerDatacenterNonPowerAware(name, characteristics, new VmAllocationPolicySimple(hostList), new LinkedList<Storage>(), 1.0);
     }
 
     private static void printCloudletList(List<Cloudlet> list) {
