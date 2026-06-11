@@ -40,4 +40,16 @@ public class CsvExporter {
             System.err.println("Błąd podczas zapisu do pliku CSV: " + e.getMessage());
         }
     }
+    public static void exportEnergyToCsv(String algorithm, String variant, int tasks, double energyKWh, String filePath) {
+            System.out.println("Eksportowanie zużycia energii do pliku: " + filePath);
+            DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+            DecimalFormat dft = new DecimalFormat("###.####", symbols);
+
+            try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
+                writer.println("Algorytm,Wariant,LiczbaZadań,Energia_kWh");
+                writer.printf(Locale.US, "%s,%s,%d,%s%n", algorithm, variant, tasks, dft.format(energyKWh));
+            } catch (IOException e) {
+                System.err.println("Błąd podczas zapisu energii do CSV: " + e.getMessage());
+            }
+        }
 }
